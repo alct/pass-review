@@ -1,0 +1,92 @@
+#!/usr/bin/env bash
+
+# Password Store Review
+# https://github.com/alct/pass-review
+
+if test "$BASH" = "" || "$BASH" -uc "a=();true \"\${a[@]}\"" 2>/dev/null; then
+    # Bash 4.4, Zsh
+    set -euo pipefail
+else
+    # Bash 4.3 and older chokes on empty arrays with set -u.
+    set -eo pipefail
+fi
+
+shopt -s nullglob globstar
+
+
+path="/home/$USER/.password-store"
+
+version="v0.0.1"
+license="GNU General Public License v3.0 - Copyright (C) 2018 André Loconte"
+
+
+function usage
+{
+    cat <<EOF
+Usage:
+  pass-review [<path/to/.password-store>]
+  pass-review [-h | --help]
+  pass-review [-V | --version]
+
+Options:
+  -h, --help    Print this help message and exit
+  -V, --version Print version and copyright information and exit
+
+Description:
+  A pass utility for manually inspecting password stores. It provides a table
+  consisting of logins and cleartext passwords (only the first line is retrieved).
+
+  Used without option or argument, pass-review tries to open the store located
+  at /home/\$USER/.password-store
+EOF
+}
+
+function version
+{
+    echo "pass-review ${version}"
+    echo "$license"
+}
+
+
+if [ "$#" != "0" ]; then
+
+    if [ "$1" = "-h" ] || [ "$1" = "--help" ]; then
+
+        usage
+        exit
+
+    elif [ "$1" = "-V" ] || [ "$1" = "--version" ]; then
+
+        version
+        exit
+
+    elif [[ "$1" =~ ^-.* ]]; then
+
+        echo "pass-review: invalid option"
+        exit
+    fi
+
+    path="$1"
+fi
+
+if [ ! -d "$path" ] || [ ! -f "$path/.gpg-id" ]; then
+
+    echo "pass-review: ${path} is not a Password Store"
+    exit
+fi
+
+
+cd $path
+
+echo "Review Password Store located at $(pwd)"
+
+store="$(find . -not \( -path ./.git -prune \) -name '*.gpg')"
+
+for item in $store; do
+    item="${item#./}"
+    item="${item%.gpg}"
+
+    password="$(pass $item | head -n1)"
+
+    echo "$item	$password"
+done | column -t -s $'\t'
