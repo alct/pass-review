@@ -83,10 +83,12 @@ echo "Review Password Store located at $(pwd)"
 store="$(find . -not \( -path ./.git -prune \) -name '*.gpg')"
 
 for item in $store; do
+
     item="${item#./}"
     item="${item%.gpg}"
 
     password="$(pass $item | head -n1)"
 
     echo "$item	$password"
+
 done | column -t -s $'\t'
